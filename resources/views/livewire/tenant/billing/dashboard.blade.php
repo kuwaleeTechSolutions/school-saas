@@ -1,0 +1,16 @@
+<div class="max-w-3xl">
+    <h1 class="text-lg font-semibold text-slate-800 mb-6">Billing &amp; Usage</h1>
+    @if (session('success'))<div class="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-700">{{ session('success') }}</div>@endif
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm mb-6"><h2 class="text-sm font-semibold text-slate-700 mb-3">Current Plan</h2><div class="text-slate-800 font-medium">{{ $subscription?->plan?->name ?? '—' }}</div><div class="text-sm text-slate-500">Status: {{ $subscription ? str($subscription->status)->headline() : '—' }}</div></div>
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm mb-6"><h2 class="text-sm font-semibold text-slate-700 mb-3">Usage</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">@foreach ($usage as $row)<div class="rounded-lg bg-slate-50 p-3 text-center"><div class="text-xs uppercase text-slate-500">{{ str($row['metric'])->headline() }}</div><div class="mt-1 text-sm font-semibold {{ $row['is_near_limit'] ? 'text-amber-700' : 'text-slate-800' }}">{{ $row['used'] }}{{ $row['limit'] !== null ? ' / '.$row['limit'] : ' (unlimited)' }}</div>@if ($row['percent'] !== null)<div class="text-xs text-slate-400">{{ $row['percent'] }}%</div>@endif</div>@endforeach</div></div>
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm mb-6"><h2 class="text-sm font-semibold text-slate-700 mb-3">Have a Coupon?</h2>
+        <form wire:submit="applyCoupon" class="flex gap-3"><input wire:model="couponCode" type="text" placeholder="Enter coupon code" class="flex-1 rounded-lg border-slate-300 text-sm uppercase"><button type="submit" class="rounded-lg bg-teal-700 px-4 py-2 text-sm text-white">Check</button></form>
+        @error('couponCode')<p class="text-red-600 text-sm mt-2">{{ $message }}</p>@enderror</div>
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left font-medium text-slate-600">Invoice #</th><th class="px-4 py-3 text-left font-medium text-slate-600">Period</th><th class="px-4 py-3 text-left font-medium text-slate-600">Total</th><th class="px-4 py-3 text-left font-medium text-slate-600">Balance</th><th class="px-4 py-3 text-left font-medium text-slate-600">Status</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+        @forelse ($invoices as $invoice)<tr wire:key="billing-inv-{{ $invoice->id }}"><td class="px-4 py-3 font-medium text-slate-800">{{ $invoice->invoice_number }}</td><td class="px-4 py-3 text-slate-600">{{ $invoice->period_starts_on->format('d M Y') }} &ndash; {{ $invoice->period_ends_on->format('d M Y') }}</td><td class="px-4 py-3 text-slate-600">{{ number_format($invoice->total_amount, 2) }}</td><td class="px-4 py-3 text-slate-600">{{ number_format($invoice->balance_amount, 2) }}</td><td class="px-4 py-3">{{ str($invoice->status)->headline() }}</td></tr>
+        @empty<tr><td colspan="5" class="px-4 py-10 text-center text-slate-500">No invoices yet.</td></tr>@endforelse
+        </tbody></table></div>
+</div>
