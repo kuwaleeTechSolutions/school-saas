@@ -351,10 +351,60 @@ $registerUnnamed = function () {
     });
 };
 
-Route::domain('{school_slug}.' . $suffix)
-    ->middleware(['web', 'tenant'])
-    ->group($registerNamed);
+if (app()->environment('local')) {
 
-Route::prefix('school/{school_slug}')
-    ->middleware(['web', 'tenant'])
-    ->group($registerUnnamed);
+    /*
+    |--------------------------------------------------------------------------
+    | Local Development
+    |--------------------------------------------------------------------------
+    |
+    | During local development we use path-based tenant URLs:
+    |
+    | /school/demo-school/dashboard
+    | /school/demo-school/students
+    | /school/demo-school/roles
+    |
+    | Therefore the named tenant routes must belong to the path-based
+    | registration so route('tenant.*') generates the correct URLs.
+    |
+    */
+
+    Route::prefix('school/{school_slug}')
+        ->middleware(['web', 'tenant'])
+        ->group($registerNamed);
+
+    /*
+    | Keep subdomain routes available locally if needed,
+    | but do not give them the tenant.* route names.
+    */
+
+    Route::domain('{school_slug}.' . $suffix)
+        ->middleware(['web', 'tenant'])
+        ->group($registerUnnamed);
+
+} else {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Production
+    |--------------------------------------------------------------------------
+    |
+    | Production uses tenant subdomains:
+    |
+    | school.example.com/dashboard
+    |
+    */
+
+    Route::domain('{school_slug}.' . $suffix)
+        ->middleware(['web', 'tenant'])
+        ->group($registerNamed);
+
+    /*
+    | Optional path-based routes remain available without taking over
+    | the tenant.* route names.
+    */
+
+    Route::prefix('school/{school_slug}')
+        ->middleware(['web', 'tenant'])
+        ->group($registerUnnamed);
+}

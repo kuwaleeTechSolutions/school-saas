@@ -26,28 +26,45 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription.active' => \App\Http\Middleware\EnsureSubscriptionActive::class,
             'entitlement' => \App\Http\Middleware\EntitlementGate::class,
         ]);
+        $middleware->prependToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            \App\Http\Middleware\IdentifyTenant::class
+        );
 
         $middleware->validateCsrfTokens(except: [
             'webhooks/gateway/*',
         ]);
 
         $middleware->redirectGuestsTo(function ($request) {
-            if ($request->is('super-admin*')) {
+            if ($request->is('super-admin')) {
+                return route('super-admin.login');
+          }
+        
+            if ($request->is('super-admin/*')) {
                 return route('super-admin.login');
             }
-
-            if (
-                $request->route('school_slug') &&
-                ! $request->route()->getDomain()
-            ) {
-                return url(
-                    '/school/' .
-                    $request->route('school_slug') .
-                    '/login'
-                );
+        
+            $schoolSlug = $request->route('school_slug');
+        
+            if (! $schoolSlug) {
+                $tenant = app(\App\Domain\Shared\Tenancy\TenantContext::class);
+        
+                if ($tenant->hasSchool()) {
+                    $schoolSlug = $tenant->school()->slug;
+                }
             }
-
-            return route('tenant.login');
+        
+            if (! $schoolSlug) {
+                return url('/');
+            }
+        
+            if ($request->route() && ! $request->route()->getDomain()) {
+                return url('/school/' . $schoolSlug . '/login');
+            }
+        
+            return route('tenant.login', [
+                'school_slug' => $schoolSlug,
+            ]);
         });
     })
     ->withExceptions(function (Exceptions $exceptions) {
